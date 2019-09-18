@@ -5,12 +5,13 @@ from bs4 import BeautifulSoup
 import http.cookiejar
 import urllib.request
 import getpass
+import zipfile
 
 
 username = getpass.getuser()        # Change this to set custom username not email
 
 
-if len(sys.argv) <= 1: output_path = input('Enter Output Location')
+if len(sys.argv) <= 1: output_path = input('Enter Output Location: ')
 else: output_path = sys.argv[1]
 output_path = os.path.abspath(output_path)
 
@@ -26,6 +27,11 @@ KATTIS_PAGE = 'https://uchicago.kattis.com'
 LOGIN_PAGE = '/login'
 PROBLEMS_PAGE = '/problems?show_solved=on&show_tried=off&show_untried=off'
 PROBLEM_PAGE = '/problems/{problem}'
+SAMPLES_PAGE = '/file/statement/'
+SAMPLES_NAME = 'samples.zip'
+SUBMISSIONS_PAGE = '/users/{username}/submissions/{problem}'
+SUBMISSION_PAGE = '/submissions/{submission}/source/'
+SUBMISSION_NAME = '{problem}.py'
 
 cookies = http.cookiejar.CookieJar()
 browser = mechanize.Browser()
@@ -58,4 +64,21 @@ for problem in problems:
     os.chdir(problem[0])
     with open(problem[1]+'.html', 'w') as html_file:
         html_file.write(HTML_TEMPLATE.format(url=KATTIS_PAGE+PROBLEM_PAGE.format(problem=problem[1])))
+    try:
+        browser.retrieve(KATTIS_PAGE+PROBLEM_PAGE.format(problem=problem[1])+SAMPLES_PAGE+SAMPLES_NAME, SAMPLES_NAME)
+        with zipfile.ZipFile(SAMPLES_NAME, 'r') as zipfile_ref:
+            zipfile_ref.extractall(SAMPLES_NAME.split('.')[0])
+        os.remove(SAMPLES_NAME)
+    except:
+        print(f'Warning! Samples for "{problem[0]}" Not Found')
+    psoup = BeautifulSoup(browser.open(KATTIS_PAGE+SUBMISSIONS_PAGE.format(username=username, problem=problem[1])).read(), "html5lib")
+    submission_refs = psoup.find_all('td', class_ = 'submission_id')
+    submissions = []
+    for submission in submission_refs:
+        submissions.append(submission.text)
+    for submission in sorted(submissions, key=int, reverse=True):
+        submission_ref = psoup.find_all('tr', attrs={"data-submission-id":submission})[0]
+        if submission_ref.contents[3].text != 'Accepted': continue
+        browser.retrieve(KATTIS_PAGE+SUBMISSION_PAGE.format(submission=submission)+SUBMISSION_NAME.format(problem=problem[1].split('.')[-1]), SUBMISSION_NAME.format(problem=problem[1].split('.')[-1]))
+        break
     os.chdir('..')
