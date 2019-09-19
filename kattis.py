@@ -32,6 +32,7 @@ SAMPLES_NAME = 'samples.zip'
 SUBMISSIONS_PAGE = '/users/{username}/submissions/{problem}'
 SUBMISSION_PAGE = '/submissions/{submission}/source/'
 SUBMISSION_NAME = '{problem}.py'
+README_NAME = 'README.md'
 
 cookies = http.cookiejar.CookieJar()
 browser = mechanize.Browser()
@@ -51,19 +52,23 @@ problem_refs = soup.find_all('td', class_ = 'name_column')
 problems = []
 for problem in problem_refs: problems.append((problem.text, problem.contents[0]['href'][10:]))
 
-HTML_TEMPLATE = '''<head>
-  <meta http-equiv='refresh' content='0; URL={url}'>
-</head>'''
-
 os.chdir(os.path.dirname(output_path))
 os.mkdir(os.path.basename(output_path))
 os.chdir(os.path.basename(output_path))
+
+HTML_TEMPLATE = '''<head>
+  <meta http-equiv='refresh' content='0; URL={url}'>
+</head>'''
+README_TEMPLATE = '''# {problem_name}
+URL: [{problem}]({url})'''
 
 for problem in problems:
     os.mkdir(problem[0])
     os.chdir(problem[0])
     with open(problem[1]+'.html', 'w') as html_file:
         html_file.write(HTML_TEMPLATE.format(url=KATTIS_PAGE+PROBLEM_PAGE.format(problem=problem[1])))
+    with open(README_NAME, 'w') as readme_file:
+        readme_file.write(README_TEMPLATE.format(problem_name=problem[0], problem=problem[1], url=KATTIS_PAGE+PROBLEM_PAGE.format(problem=problem[1])))
     try:
         browser.retrieve(KATTIS_PAGE+PROBLEM_PAGE.format(problem=problem[1])+SAMPLES_PAGE+SAMPLES_NAME, SAMPLES_NAME)
         with zipfile.ZipFile(SAMPLES_NAME, 'r') as zipfile_ref:

@@ -1,3 +1,6 @@
+# macos Files
+.DS_Store
+
 # Temporary Web Pages
 *.html
 
