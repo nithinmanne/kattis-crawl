@@ -23,6 +23,7 @@ elif not os.path.exists(os.path.dirname(output_path)):
     sys.exit(1)
 
 KATTIS_PAGE = 'https://uchicago.kattis.com'
+OPEN_KATTIS_PAGE = 'https://open.kattis.com'
 
 LOGIN_PAGE = '/login'
 PROBLEMS_PAGE = '/problems?show_solved=on&show_tried=off&show_untried=off'
@@ -43,6 +44,7 @@ browser.set_cookiejar(cookies)
 browser.open(KATTIS_PAGE+LOGIN_PAGE)
 browser.select_form(nr=1)
 browser.form['user'] = username
+print(f'Username: {username}')
 browser.form['password'] = getpass.getpass()
 browser.submit()
 
@@ -63,12 +65,17 @@ README_TEMPLATE = '''# {problem_name}
 URL: [{problem}]({url})'''
 
 for problem in problems:
-    os.mkdir(problem[0])
-    os.chdir(problem[0])
+    dir_name = problem[0].replace('?', '_').replace('.', '_')
+    os.mkdir(dir_name)
+    os.chdir(dir_name)
+    if 'uchicago' in problem[1]:
+        url = KATTIS_PAGE+PROBLEM_PAGE.format(problem=problem[1])
+    else:
+        url = OPEN_KATTIS_PAGE+PROBLEM_PAGE.format(problem=problem[1])
     with open(problem[1]+'.html', 'w') as html_file:
-        html_file.write(HTML_TEMPLATE.format(url=KATTIS_PAGE+PROBLEM_PAGE.format(problem=problem[1])))
+        html_file.write(HTML_TEMPLATE.format(url=url))
     with open(README_NAME, 'w') as readme_file:
-        readme_file.write(README_TEMPLATE.format(problem_name=problem[0], problem=problem[1], url=KATTIS_PAGE+PROBLEM_PAGE.format(problem=problem[1])))
+        readme_file.write(README_TEMPLATE.format(problem_name=problem[0], problem=problem[1], url=url))
     try:
         browser.retrieve(KATTIS_PAGE+PROBLEM_PAGE.format(problem=problem[1])+SAMPLES_PAGE+SAMPLES_NAME, SAMPLES_NAME)
         with zipfile.ZipFile(SAMPLES_NAME, 'r') as zipfile_ref:
